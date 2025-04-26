@@ -1,0 +1,24 @@
+---
+# YAML example configuration file for qrzrtlogger.py
+qrz:
+    # QRZ logbook setup
+    # Requires a paid QRZ subscription
+    # See https://www.qrz.com/docs/logbook30/api
+    call:    N0CALL
+    api_key: ABCD-1234-EFGH-5678
+
+n1mm:
+    # N1MM+ external UDP broadcasts setup
+    # Must match Broadcast Data tab -> Contacts field
+    # See https://n1mmwp.hamdocs.com/appendices/external-udp-broadcasts/
+    ip:      127.0.0.1
+    port:    12060
+    timeout: 10
+
+wsjtx:
+    # WSJT-X reporting setup
+    # Must match Settings -> Reporting tab -> UDP Server fields
+    # See https://wsjt.sourceforge.io/wsjtx-doc/wsjtx-main-2.6.1.html#REPORTING
+    ip:      127.0.0.1
+    port:    2237
+    timeout: 16
