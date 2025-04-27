@@ -30,11 +30,11 @@ For N1MM+ logger integration, edit the `n1mm` section IP address and port to mat
 
 For WSJT-X integration, edit the `wsjtx` section IP address and port to match your Reporting UDP server fields. See https://wsjt.sourceforge.io/wsjtx-doc/wsjtx-main-2.6.1.html#REPORTING  
 
-Run the application interactively in a console or terminal window, for example:  
-`python -i qrzrtlogger.py qrzrtlogger.yml`  
-The application will wait for logged QSO UDP messages over the specified ports and will format them and send them to QRZ.com.
+Run the application in a console or terminal window, for example:  
+`python qrzrtlogger.py qrzrtlogger.yml`  
+The application will wait for logged QSO UDP messages over the specified ports and will format them and send them to QRZ.com.  See `print_usage()` in `qrzrtlogger.py` for more options.
 
-The application starts multiple threads that run continuously.  To gracefully stop the threads and exit the application, type `stop()` in the console window and wait for the threads to exit. Exit Python by typing `quit()`.
+To exit the application, type Ctrl-C in the terminal window. The application will terminate all threads and then exit.
 
 ## Author
 Tom Kerr AB3GY

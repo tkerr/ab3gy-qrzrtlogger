@@ -45,9 +45,11 @@
 # System level packages.
 import getopt
 import os
+import queue
 import re
 import sys
 import threading
+import time
 import yaml
 
 # Local packages.
@@ -66,7 +68,7 @@ n1mm_monitor = None
 n1mm_running = False
 wsjtx_monitor = None
 wsjtx_running = False
-qrz_logger = None
+qso_queue = queue.Queue(maxsize=20)
 
 
 ##############################################################################
@@ -79,10 +81,11 @@ def print_usage():
     Print a usage statement and exit.
     """
     global scriptname
-    print('Usage: {} [-hv] <yml_file>'.format(scriptname))
+    print('Usage: {} [-dhv] <yml_file>'.format(scriptname))
     print('Perform real-time QSO logging to QRZ.com from supported applications.')
     print('<yml_file> is a YAML configuration file.')
     print('Options:')
+    print('  -d = Dryrun only, do lot log the QSO (used for test and debug)')
     print('  -h = Print this message and exit')
     print('  -v = Print verbose debug messages')
     sys.exit(1)
@@ -102,32 +105,22 @@ def format_record(adif_in):
     return adif_out
 
 #------------------------------------------------------------------------------
-def stop():
-    """
-    Stop all threads.
-    """
-    global n1mm_running
-    global wsjtx_running
-    n1mm_running = False
-    wsjtx_running = False
-
-#------------------------------------------------------------------------------
 def n1mm_thread():
     """
     Run the N1MM+ real-time logger thread.
     """
     global n1mm_monitor
     global n1mm_running
-    global qrz_logger
+    global qso_queue
     print('N1MM+ logging thread starting.')
     while n1mm_running:
         if n1mm_monitor.get_message():
             if (n1mm_monitor.message != 'timeout'):
-                (upload_count, status, info) = qrz_logger.upload(n1mm_monitor.message)
-                if (upload_count == 1):
-                    print('N1MM+ QSO logged')
+                if qso_queue.full():
+                    print('Queue full, N1MM+ QSO not queued.')
                 else:
-                    print('N1MM+ QSO NOT logged: {}'.format(info))
+                    qso_queue.put(n1mm_monitor.message, block=False)
+                    print('N1MM+ QSO queued')
         else:
             n1mm_running = False
     print('N1MM+ logging thread exiting.')
@@ -139,19 +132,18 @@ def wsjtx_thread():
     """
     global wsjtx_monitor
     global wsjtx_running
-    global qrz_logger
+    global qso_queue
     print('WSJT-X logging thread starting.')
     while wsjtx_running:
         if wsjtx_monitor.get_message():
             if (wsjtx_monitor.Message[0] == wsjtx_monitor.MSG_ADIF_LOGGED):
                 #print(wsjtx_monitor.Message)
-                adif_rec = format_record(wsjtx_monitor.Message[2])
-                #print(adif_rec)
-                (upload_count, status, info) = qrz_logger.upload(adif_rec)
-                if (upload_count == 1):
-                    print('WSJT-X QSO logged')
+                qso = format_record(wsjtx_monitor.Message[2])
+                if qso_queue.full():
+                    print('Queue full, WSJT-X QSO not queued.')
                 else:
-                    print('WSJT-X QSO NOT logged: {}'.format(info))
+                    qso_queue.put(qso, block=False)
+                    print('WSJT-X QSO queued')
         else:
             wsjtx_running = False
     print('WSJT-X logging thread exiting.')
@@ -162,18 +154,22 @@ def wsjtx_thread():
 ###############################################################################
 if __name__ == "__main__":
     
+    dryrun = False
     verbose = False
     
     # Get command line options.
     # See print_usage() for details.
     try:
-        (opts, args) = getopt.getopt(sys.argv[1:], 'hv')
+        (opts, args) = getopt.getopt(sys.argv[1:], 'dhv')
     except (getopt.GetoptError) as err:
         print(str(err))
         print_usage()
         
     for (o, a) in opts:
-        if (o == '-h'):
+        if (o == '-d'):
+            dryrun = True
+            print('Dryrun mode, no QSOs will be logged')
+        elif (o == '-h'):
             print_usage()
         elif (o == '-v'):
             verbose = True
@@ -215,6 +211,29 @@ if __name__ == "__main__":
         n1mmThread.start()
     
     print('Monitoring UDP ports for QSO messages.')
-    print('Type stop() to stop all monitoring threads.')
-
+    try:
+        while True:
+            if qso_queue.empty():
+                time.sleep(5)
+            else:
+                qso = qso_queue.get(block=False)
+                if dryrun:
+                    print('Dryrun mode, QSO not logged')
+                    print(qso)
+                else:
+                    (upload_count, status, info) = qrz_logger.upload(qso)
+                    if (upload_count == 1):
+                        print('QSO logged')
+                    else:
+                        print('QSO NOT logged: {}'.format(info))
+    except KeyboardInterrupt:
+        print('Keyboard interrupt')
+    except Exception as e:
+        print('Exception: {}'.format(str(e)))
+    n1mm_running = False
+    wsjtx_running = False
+    print('Waiting for threads to exit.')
+    n1mmThread.join()
+    wsjtxThread.join()
+    print('{} exiting.'.format(scriptname))
     
