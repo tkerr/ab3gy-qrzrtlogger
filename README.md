@@ -13,10 +13,16 @@ A QRZ.com subscription is required to use this application.
 ## Dependencies
 Written for Python 3.10+.
 
+Additional python system packages that may need to be installed:
+* yaml
+
 Requires the following packages from the ab3gy-pyutils repository:
 * n1mmmon
 * qrzupload
 * strutils
+
+Requires the following packages from the ab3gy-adif repository:
+* adif
 
 Requires the following packages from the ab3gy-wsjtx repository:
 * wsjtxmon

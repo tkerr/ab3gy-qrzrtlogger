@@ -12,14 +12,13 @@ import sys
 ### LOCAL CUSTOMIZATION ###
 # Set these paths to point to the custom amateur radio packages on this computer.
 # List them in order of search.
-LOCAL_PACKAGE_PATH = r'D:/dev/AB3GY/pypkg'
+LOCAL_PACKAGE_PATH = '..'  # Root directory of local packages
 path_base = os.path.abspath(LOCAL_PACKAGE_PATH)
 local_package_paths = [
     path_base,
-    os.path.join(path_base, 'masterlog'),
-    os.path.join(path_base, 'dxentity'),
-    os.path.join(path_base, 'dxentity/src'),
-    os.path.join(path_base, 'dxentity/db'),
+    os.path.join(path_base, 'ab3gy-pyutils'),
+    os.path.join(path_base, 'ab3gy-adif'),
+    os.path.join(path_base, 'ab3gy-wsjtx'),
 ]
 
 n = len(local_package_paths)-1

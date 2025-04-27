@@ -43,6 +43,7 @@
 ###############################################################################
 
 # System level packages.
+from datetime import datetime
 import getopt
 import os
 import queue
@@ -91,6 +92,15 @@ def print_usage():
     sys.exit(1)
 
 #------------------------------------------------------------------------------
+def print_time(msg):
+    """
+    Print a message with a timestamp.
+    """
+    now = datetime.now()
+    ts = now.strftime('%Y-%m-%d %H:%M:%S')
+    print('{} {}'.format(ts, msg))
+
+#------------------------------------------------------------------------------
 def format_record(adif_in):
     """
     Format an incoming ADIF record suitable for logging.
@@ -112,18 +122,18 @@ def n1mm_thread():
     global n1mm_monitor
     global n1mm_running
     global qso_queue
-    print('N1MM+ logging thread starting.')
+    print_time('N1MM+ logging thread starting.')
     while n1mm_running:
         if n1mm_monitor.get_message():
             if (n1mm_monitor.message != 'timeout'):
                 if qso_queue.full():
-                    print('Queue full, N1MM+ QSO not queued.')
+                    print_time('Queue full, N1MM+ QSO not queued.')
                 else:
                     qso_queue.put(n1mm_monitor.message, block=False)
-                    print('N1MM+ QSO queued')
+                    print_time('N1MM+ QSO queued')
         else:
             n1mm_running = False
-    print('N1MM+ logging thread exiting.')
+    print_time('N1MM+ logging thread exiting.')
 
 #------------------------------------------------------------------------------
 def wsjtx_thread():
@@ -133,20 +143,20 @@ def wsjtx_thread():
     global wsjtx_monitor
     global wsjtx_running
     global qso_queue
-    print('WSJT-X logging thread starting.')
+    print_time('WSJT-X logging thread starting.')
     while wsjtx_running:
         if wsjtx_monitor.get_message():
             if (wsjtx_monitor.Message[0] == wsjtx_monitor.MSG_ADIF_LOGGED):
                 #print(wsjtx_monitor.Message)
                 qso = format_record(wsjtx_monitor.Message[2])
                 if qso_queue.full():
-                    print('Queue full, WSJT-X QSO not queued.')
+                    print_time('Queue full, WSJT-X QSO not queued.')
                 else:
                     qso_queue.put(qso, block=False)
-                    print('WSJT-X QSO queued')
+                    print_time('WSJT-X QSO queued')
         else:
             wsjtx_running = False
-    print('WSJT-X logging thread exiting.')
+    print_time('WSJT-X logging thread exiting.')
 
 
 ###############################################################################
@@ -210,7 +220,7 @@ if __name__ == "__main__":
         n1mmThread = threading.Thread(target=n1mm_thread)
         n1mmThread.start()
     
-    print('Monitoring UDP ports for QSO messages.')
+    print_time('Monitoring UDP ports for QSO messages.')
     try:
         while True:
             if qso_queue.empty():
@@ -218,22 +228,22 @@ if __name__ == "__main__":
             else:
                 qso = qso_queue.get(block=False)
                 if dryrun:
-                    print('Dryrun mode, QSO not logged')
+                    print_time('Dryrun mode, QSO not logged')
                     print(qso)
                 else:
                     (upload_count, status, info) = qrz_logger.upload(qso)
                     if (upload_count == 1):
-                        print('QSO logged')
+                        print_time('QSO logged')
                     else:
-                        print('QSO NOT logged: {}'.format(info))
+                        print_time('QSO NOT logged: {}'.format(info))
     except KeyboardInterrupt:
-        print('Keyboard interrupt')
+        print_time('Keyboard interrupt')
     except Exception as e:
-        print('Exception: {}'.format(str(e)))
+        print_time('Exception: {}'.format(str(e)))
     n1mm_running = False
     wsjtx_running = False
-    print('Waiting for threads to exit.')
+    print_time('Waiting for threads to exit.')
     n1mmThread.join()
     wsjtxThread.join()
-    print('{} exiting.'.format(scriptname))
+    print_time('{} exiting.'.format(scriptname))
     
